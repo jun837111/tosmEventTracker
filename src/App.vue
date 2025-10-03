@@ -782,6 +782,11 @@ watch(firebaseNotes, (newNotes) => {
         isStarred: mapData?.isStarred || false,
       };
 
+      // Load map image
+      if (mapData?.name) {
+        loadMapImage(mapData.name);
+      }
+
       return {
         ...firebaseNote,
         hasSound: prefs.hasSound,
