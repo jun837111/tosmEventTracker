@@ -472,11 +472,50 @@ const sortNotes = () => {
   emit("toggle-sort");
 };
 
-const handleDelete = (id: string) => {
-  emit("delete-note", id);
+const verifyPassword = async (operation: string): Promise<boolean> => {
+  const adminPassword = import.meta.env.VITE_ADMIN_PASSWORD;
+
+  // If no password is set, allow operation
+  if (!adminPassword) {
+    return true;
+  }
+
+  try {
+    const { value: inputPassword } = await ElMessageBox.prompt(
+      `請輸入管理員密碼以${operation}`,
+      "密碼驗證",
+      {
+        confirmButtonText: "確定",
+        cancelButtonText: "取消",
+        inputType: "password",
+        inputPlaceholder: "請輸入密碼",
+      }
+    );
+
+    if (inputPassword === adminPassword) {
+      return true;
+    } else {
+      ElMessage.error("密碼錯誤");
+      return false;
+    }
+  } catch {
+    return false;
+  }
+};
+
+const handleDelete = async (id: string) => {
+  const verified = await verifyPassword("刪除此記錄");
+  if (verified) {
+    emit("delete-note", id);
+  }
 };
 
 const handleClearAll = async () => {
+  const verified = await verifyPassword("清空所有記錄");
+  if (!verified) {
+    return;
+  }
+
   try {
     await ElMessageBox.confirm(
       "確定要清空所有記錄嗎？此操作無法復原。",
