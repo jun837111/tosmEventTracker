@@ -56,8 +56,8 @@
         @update-note-cd="handleUpdateNoteCd"
       />
     </el-main>
-    <div class="import-export-section">
-      <!-- <h3>匯入 / 匯出 記錄</h3> -->
+    <!-- <h3>匯入 / 匯出 記錄</h3> -->
+    <!-- <div class="import-export-section">
       <div class="import-export-buttons">
         <el-button type="primary" @click="exportNotes">匯出記錄</el-button>
         <el-button type="success" @click="handleImportClick"
@@ -70,7 +70,7 @@
         :rows="5"
         placeholder="匯出的記錄會顯示在此處，或在此處貼上要匯入的資料"
       ></el-input>
-    </div>
+    </div> -->
   </el-container>
   <a
     v-if="featureFlags?.en"
@@ -113,6 +113,7 @@ import { ElMessage, ElMessageBox } from "element-plus";
 import { maps as originalMaps, type MapData } from "./data/maps";
 import packageInfo from "../package.json";
 import { Sunny, Moon } from "@element-plus/icons-vue";
+import { useFirebaseNotes } from "./composables/useFirebaseNotes";
 // --------------------- 主題模式狀態 ---------------------
 const isDark = ref(false);
 
@@ -248,13 +249,10 @@ const mapImageCache = ref<Record<string, string>>({});
 // 獨立的圖片載入函式
 const loadMapImage = async (noteText: string) => {
   const mapData = maps.value.find((m: MapData) => m.name === noteText);
-  // todo: 等蒐集完地圖再更新
   if (
-    featureFlags?.value.pic &&
     mapData?.imagePath &&
     !mapImageCache.value[mapData.name]
   ) {
-    console.log(mapData?.imagePath);
     try {
       const image = new Image();
       await new Promise((resolve, reject) => {
@@ -268,6 +266,17 @@ const loadMapImage = async (noteText: string) => {
     }
   }
 };
+
+// --------------------- Firebase Setup ---------------------
+const {
+  notes: firebaseNotes,
+  isFirebaseEnabled,
+  initFirebase,
+  saveNotesToFirebase,
+  updateNoteInFirebase,
+  deleteNoteFromFirebase,
+  clearAllNotesInFirebase,
+} = useFirebaseNotes();
 
 // --------------------- ------------- ---------------------
 
@@ -294,6 +303,12 @@ const toggleSort = () => {
 };
 
 const loadNotes = () => {
+  if (isFirebaseEnabled.value) {
+    // Firebase will handle loading via real-time listener
+    return;
+  }
+
+  // Fallback to localStorage
   const savedNotes = localStorage.getItem("notes");
   if (savedNotes) {
     notes.value = JSON.parse(savedNotes).map((note: Note) => {
@@ -316,8 +331,12 @@ const loadNotes = () => {
   }
 };
 
-const saveNotes = () => {
-  localStorage.setItem("notes", JSON.stringify(notes.value));
+const saveNotes = async () => {
+  if (isFirebaseEnabled.value) {
+    await saveNotesToFirebase(notes.value);
+  } else {
+    localStorage.setItem("notes", JSON.stringify(notes.value));
+  }
 };
 
 const handleAddNewNote = async (newNote: any) => {
@@ -501,197 +520,197 @@ const handleUpdateMapStar = (mapLevel: number) => {
   }
 };
 
-const exportNotes = async () => {
-  const exportedNotes = notes.value.map((note) => ({
-    l: note.mapLevel, // 縮寫: mapLevel -> l
-    c: note.channel, // 縮寫: channel -> c
-    o: note.onTime, // 縮寫: onTime -> o
-    r: note.respawnTime, // 縮寫: respawnTime -> r
-    s: note.state, // 縮寫: state -> s
-    n: (note as any).noteText, // 縮寫: noteText -> n
-  }));
-  // importExportData.value = JSON.stringify(exportedNotes, null, 2);
-  importExportData.value = JSON.stringify(exportedNotes);
-  try {
-    // 將 JSON 字串複製到剪貼簿
-    await navigator.clipboard.writeText(importExportData.value);
+// const exportNotes = async () => {
+//   const exportedNotes = notes.value.map((note) => ({
+//     l: note.mapLevel, // 縮寫: mapLevel -> l
+//     c: note.channel, // 縮寫: channel -> c
+//     o: note.onTime, // 縮寫: onTime -> o
+//     r: note.respawnTime, // 縮寫: respawnTime -> r
+//     s: note.state, // 縮寫: state -> s
+//     n: (note as any).noteText, // 縮寫: noteText -> n
+//   }));
+//   // importExportData.value = JSON.stringify(exportedNotes, null, 2);
+//   importExportData.value = JSON.stringify(exportedNotes);
+//   try {
+//     // 將 JSON 字串複製到剪貼簿
+//     await navigator.clipboard.writeText(importExportData.value);
 
-    // 複製成功時跳出提示
-    ElMessage({
-      type: "success",
-      message: "記錄已匯出並複製到剪貼簿。",
-    });
-  } catch (err) {
-    // 複製失敗時（例如使用者拒絕授權），跳出警告
-    ElMessage({
-      type: "warning",
-      message: "無法自動複製到剪貼簿，請手動複製上方文字。",
-    });
-    console.error("Failed to copy notes to clipboard: ", err);
-  }
-};
+//     // 複製成功時跳出提示
+//     ElMessage({
+//       type: "success",
+//       message: "記錄已匯出並複製到剪貼簿。",
+//     });
+//   } catch (err) {
+//     // 複製失敗時（例如使用者拒絕授權），跳出警告
+//     ElMessage({
+//       type: "warning",
+//       message: "無法自動複製到剪貼簿，請手動複製上方文字。",
+//     });
+//     console.error("Failed to copy notes to clipboard: ", err);
+//   }
+// };
 
-const handleImportClick = async () => {
-  if (!importExportData.value) {
-    ElMessage({ type: "warning", message: "請先貼上要匯入的記錄。" });
-    return;
-  }
-  try {
-    const importedNotes = JSON.parse(importExportData.value);
+// const handleImportClick = async () => {
+//   if (!importExportData.value) {
+//     ElMessage({ type: "warning", message: "請先貼上要匯入的記錄。" });
+//     return;
+//   }
+//   try {
+//     const importedNotes = JSON.parse(importExportData.value);
 
-    // 檢查資料格式：我們檢查新格式的 'l' 和 'c'，或舊格式的 'mapLevel' 和 'channel'
-    if (
-      !Array.isArray(importedNotes) ||
-      importedNotes.some((n) => !(n.l || n.mapLevel) || !(n.c || n.channel))
-    ) {
-      ElMessage({ type: "error", message: "匯入的資料格式不正確。" });
-      return;
-    }
+//     // 檢查資料格式：我們檢查新格式的 'l' 和 'c'，或舊格式的 'mapLevel' 和 'channel'
+//     if (
+//       !Array.isArray(importedNotes) ||
+//       importedNotes.some((n) => !(n.l || n.mapLevel) || !(n.c || n.channel))
+//     ) {
+//       ElMessage({ type: "error", message: "匯入的資料格式不正確。" });
+//       return;
+//     }
 
-    // --- 核心解碼邏輯 ---
-    const processedImportedNotes = importedNotes
-      .map((importedNote) => {
-        // 使用 || 來兼容新格式 (l, c, o, r, s, n) 和舊格式 (mapLevel, channel, ...)
-        const mapLevel = importedNote.l || importedNote.mapLevel;
-        const channel = importedNote.c || importedNote.channel;
-        const onTime = importedNote.o || importedNote.onTime;
-        const respawnTime = importedNote.r || importedNote.respawnTime;
-        const state = importedNote.s || importedNote.state;
-        const noteText = importedNote.n || importedNote.noteText;
+//     // --- 核心解碼邏輯 ---
+//     const processedImportedNotes = importedNotes
+//       .map((importedNote) => {
+//         // 使用 || 來兼容新格式 (l, c, o, r, s, n) 和舊格式 (mapLevel, channel, ...)
+//         const mapLevel = importedNote.l || importedNote.mapLevel;
+//         const channel = importedNote.c || importedNote.channel;
+//         const onTime = importedNote.o || importedNote.onTime;
+//         const respawnTime = importedNote.r || importedNote.respawnTime;
+//         const state = importedNote.s || importedNote.state;
+//         const noteText = importedNote.n || importedNote.noteText;
 
-        // 檢查地圖等級和名稱是否存在 (確保 mapData 可以被找到)
-        if (!mapLevel || !noteText) {
-          // 可以在這裡拋出錯誤，或跳過此筆資料
-          return null;
-        }
+//         // 檢查地圖等級和名稱是否存在 (確保 mapData 可以被找到)
+//         if (!mapLevel || !noteText) {
+//           // 可以在這裡拋出錯誤，或跳過此筆資料
+//           return null;
+//         }
 
-        // 重新組裝成一個標準的物件，方便後續程式碼處理
-        return {
-          ...importedNote, // 保留所有原始屬性 (兼容舊版自訂屬性)
-          mapLevel,
-          channel,
-          onTime,
-          respawnTime,
-          state,
-          noteText, // 這裡的 noteText 包含了地圖名稱
-        };
-      })
-      .filter((n) => n !== null); // 過濾掉不合格的資料
+//         // 重新組裝成一個標準的物件，方便後續程式碼處理
+//         return {
+//           ...importedNote, // 保留所有原始屬性 (兼容舊版自訂屬性)
+//           mapLevel,
+//           channel,
+//           onTime,
+//           respawnTime,
+//           state,
+//           noteText, // 這裡的 noteText 包含了地圖名稱
+//         };
+//       })
+//       .filter((n) => n !== null); // 過濾掉不合格的資料
 
-    // 預載入圖片
-    for (const note of processedImportedNotes) {
-      await loadMapImage(note.noteText);
-    }
-    // 在建立 Map 時將 noteText 納入鍵中
-    const currentNotesMap = new Map(
-      notes.value.map((note) => [
-        `${note.mapLevel}-${note.channel}-${note.noteText}`,
-        note,
-      ])
-    );
-    const nonDuplicateNotes: Note[] = [];
-    const duplicateNotes: { newNote: Note; oldNote: Note }[] = [];
-    processedImportedNotes.forEach((importedNote) => {
-      const mapData = maps.value.find(
-        (m: MapData) =>
-          m.level === importedNote.mapLevel && m.name === importedNote.noteText
-      );
-      const isExpired = importedNote.respawnTime <= Date.now();
-      const processedNote: Note = {
-        ...importedNote,
-        id: uuidv4(),
-        hasSound: hasInputSoundOn.value,
-        isStarred: mapData ? mapData.isStarred : false,
-        onTime: importedNote.onTime || null,
-        respawnTime: importedNote.respawnTime || null,
-        hasAlerted: isExpired,
-        maxStages: mapData ? mapData.maxStages : 0,
-      };
-      // 在判斷重複時將 noteText 納入鍵中
-      const existingKey = `${importedNote.mapLevel}-${importedNote.channel}-${importedNote.noteText}`;
-      const existingNote = currentNotesMap.get(existingKey);
-      if (existingNote) {
-        duplicateNotes.push({ newNote: processedNote, oldNote: existingNote });
-      } else {
-        nonDuplicateNotes.push(processedNote);
-      }
-    });
-    if (duplicateNotes.length > 0) {
-      ElMessageBox({
-        title: "發現重複的記錄",
-        message: h("div", null, [
-          h("p", `本次匯入共發現 ${duplicateNotes.length} 筆重複記錄。`),
-          h(
-            "ul",
-            {
-              style: "max-height: 200px; overflow-y: auto; padding-left: 20px;",
-            },
-            duplicateNotes.map((item) =>
-              h(
-                "li",
-                `地圖: ${item.newNote.mapLevel} - ${item.newNote.noteText} 分流: ${item.newNote.channel}`
-              )
-            )
-          ),
-          h("p", "您希望如何處理這些重複項目？"),
-        ]),
-        showCancelButton: true,
-        confirmButtonText: "一鍵覆蓋",
-        cancelButtonText: "全部跳過",
-        distinguishCancelAndClose: true,
-      })
-        .then((action) => {
-          if (action === "confirm") {
-            const finalNotesMap = new Map(
-              notes.value.map((note) => [
-                `${note.mapLevel}-${note.channel}-${note.noteText}`,
-                note,
-              ])
-            );
-            duplicateNotes.forEach((item) =>
-              finalNotesMap.set(
-                `${item.newNote.mapLevel}-${item.newNote.channel}-${item.newNote.noteText}`,
-                item.newNote
-              )
-            );
-            const finalNotes = [
-              ...finalNotesMap.values(),
-              ...nonDuplicateNotes,
-            ];
-            notes.value = finalNotes;
-            notes.value.sort(sortNotesArray);
-            saveNotes();
-            ElMessage({
-              type: "success",
-              message: `成功覆蓋 ${duplicateNotes.length} 筆並新增 ${nonDuplicateNotes.length} 筆記錄。`,
-            });
-          } else if (action === "cancel") {
-            const finalNotes = [...notes.value, ...nonDuplicateNotes];
-            notes.value = finalNotes;
-            notes.value.sort(sortNotesArray);
-            saveNotes();
-            ElMessage({
-              type: "success",
-              message: `成功新增 ${nonDuplicateNotes.length} 筆記錄。`,
-            });
-          }
-        })
-        .catch(() => {
-          ElMessage({ type: "info", message: "已取消匯入。" });
-        });
-    } else {
-      notes.value = [...notes.value, ...nonDuplicateNotes];
-      notes.value.sort(sortNotesArray);
-      saveNotes();
-      ElMessage({
-        type: "success",
-        message: `成功新增 ${nonDuplicateNotes.length} 筆記錄。`,
-      });
-    }
-  } catch (e) {
-    ElMessage({ type: "error", message: "匯入失敗，請檢查格式。" });
-  }
-};
+//     // 預載入圖片
+//     for (const note of processedImportedNotes) {
+//       await loadMapImage(note.noteText);
+//     }
+//     // 在建立 Map 時將 noteText 納入鍵中
+//     const currentNotesMap = new Map(
+//       notes.value.map((note) => [
+//         `${note.mapLevel}-${note.channel}-${note.noteText}`,
+//         note,
+//       ])
+//     );
+//     const nonDuplicateNotes: Note[] = [];
+//     const duplicateNotes: { newNote: Note; oldNote: Note }[] = [];
+//     processedImportedNotes.forEach((importedNote) => {
+//       const mapData = maps.value.find(
+//         (m: MapData) =>
+//           m.level === importedNote.mapLevel && m.name === importedNote.noteText
+//       );
+//       const isExpired = importedNote.respawnTime <= Date.now();
+//       const processedNote: Note = {
+//         ...importedNote,
+//         id: uuidv4(),
+//         hasSound: hasInputSoundOn.value,
+//         isStarred: mapData ? mapData.isStarred : false,
+//         onTime: importedNote.onTime || null,
+//         respawnTime: importedNote.respawnTime || null,
+//         hasAlerted: isExpired,
+//         maxStages: mapData ? mapData.maxStages : 0,
+//       };
+//       // 在判斷重複時將 noteText 納入鍵中
+//       const existingKey = `${importedNote.mapLevel}-${importedNote.channel}-${importedNote.noteText}`;
+//       const existingNote = currentNotesMap.get(existingKey);
+//       if (existingNote) {
+//         duplicateNotes.push({ newNote: processedNote, oldNote: existingNote });
+//       } else {
+//         nonDuplicateNotes.push(processedNote);
+//       }
+//     });
+//     if (duplicateNotes.length > 0) {
+//       ElMessageBox({
+//         title: "發現重複的記錄",
+//         message: h("div", null, [
+//           h("p", `本次匯入共發現 ${duplicateNotes.length} 筆重複記錄。`),
+//           h(
+//             "ul",
+//             {
+//               style: "max-height: 200px; overflow-y: auto; padding-left: 20px;",
+//             },
+//             duplicateNotes.map((item) =>
+//               h(
+//                 "li",
+//                 `地圖: ${item.newNote.mapLevel} - ${item.newNote.noteText} 分流: ${item.newNote.channel}`
+//               )
+//             )
+//           ),
+//           h("p", "您希望如何處理這些重複項目？"),
+//         ]),
+//         showCancelButton: true,
+//         confirmButtonText: "一鍵覆蓋",
+//         cancelButtonText: "全部跳過",
+//         distinguishCancelAndClose: true,
+//       })
+//         .then((action) => {
+//           if (action === "confirm") {
+//             const finalNotesMap = new Map(
+//               notes.value.map((note) => [
+//                 `${note.mapLevel}-${note.channel}-${note.noteText}`,
+//                 note,
+//               ])
+//             );
+//             duplicateNotes.forEach((item) =>
+//               finalNotesMap.set(
+//                 `${item.newNote.mapLevel}-${item.newNote.channel}-${item.newNote.noteText}`,
+//                 item.newNote
+//               )
+//             );
+//             const finalNotes = [
+//               ...finalNotesMap.values(),
+//               ...nonDuplicateNotes,
+//             ];
+//             notes.value = finalNotes;
+//             notes.value.sort(sortNotesArray);
+//             saveNotes();
+//             ElMessage({
+//               type: "success",
+//               message: `成功覆蓋 ${duplicateNotes.length} 筆並新增 ${nonDuplicateNotes.length} 筆記錄。`,
+//             });
+//           } else if (action === "cancel") {
+//             const finalNotes = [...notes.value, ...nonDuplicateNotes];
+//             notes.value = finalNotes;
+//             notes.value.sort(sortNotesArray);
+//             saveNotes();
+//             ElMessage({
+//               type: "success",
+//               message: `成功新增 ${nonDuplicateNotes.length} 筆記錄。`,
+//             });
+//           }
+//         })
+//         .catch(() => {
+//           ElMessage({ type: "info", message: "已取消匯入。" });
+//         });
+//     } else {
+//       notes.value = [...notes.value, ...nonDuplicateNotes];
+//       notes.value.sort(sortNotesArray);
+//       saveNotes();
+//       ElMessage({
+//         type: "success",
+//         message: `成功新增 ${nonDuplicateNotes.length} 筆記錄。`,
+//       });
+//     }
+//   } catch (e) {
+//     ElMessage({ type: "error", message: "匯入失敗，請檢查格式。" });
+//   }
+// };
 
 onMounted(() => {
   const savedTheme = localStorage.getItem("theme");
@@ -705,6 +724,9 @@ onMounted(() => {
   } else {
     document.documentElement.classList.remove("dark");
   }
+
+  // Initialize Firebase
+  initFirebase();
 
   loadNotes();
 
@@ -721,9 +743,62 @@ onMounted(() => {
   }, 1000);
 
   console.log(`版本：v${packageInfo.version}`);
+  console.log(`Firebase 已${isFirebaseEnabled.value ? '啟用' : '未啟用（使用 localStorage）'}`);
 });
 
-watch(notes, saveNotes, { deep: true });
+// Load user preferences from localStorage
+const loadUserPreferences = () => {
+  const saved = localStorage.getItem("notePreferences");
+  if (saved) {
+    return JSON.parse(saved);
+  }
+  return {};
+};
+
+const saveUserPreferences = () => {
+  const preferences = notes.value.reduce((acc, note) => {
+    acc[note.id] = {
+      hasSound: note.hasSound,
+      isStarred: note.isStarred,
+    };
+    return acc;
+  }, {} as Record<string, any>);
+  localStorage.setItem("notePreferences", JSON.stringify(preferences));
+};
+
+// Watch Firebase notes and merge with local preferences
+watch(firebaseNotes, (newNotes) => {
+  if (isFirebaseEnabled.value) {
+    const userPrefs = loadUserPreferences();
+
+    notes.value = newNotes.map((firebaseNote: any) => {
+      const mapData = maps.value.find(
+        (m: MapData) => m.level === firebaseNote.mapLevel && m.name === firebaseNote.noteText
+      );
+
+      // Get user preferences or use defaults
+      const prefs = userPrefs[firebaseNote.id] || {
+        hasSound: hasInputSoundOn.value,
+        isStarred: mapData?.isStarred || false,
+      };
+
+      return {
+        ...firebaseNote,
+        hasSound: prefs.hasSound,
+        isStarred: prefs.isStarred,
+        noteText: mapData?.name || firebaseNote.noteText,
+        imagePath: mapData?.imagePath,
+      };
+    });
+  }
+}, { deep: true });
+
+watch(notes, () => {
+  saveNotes();
+  if (isFirebaseEnabled.value) {
+    saveUserPreferences();
+  }
+}, { deep: true });
 </script>
 
 <style scoped>

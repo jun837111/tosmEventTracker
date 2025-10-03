@@ -12,6 +12,10 @@ dist
 dist-ssr
 *.local
 
+# Environment variables
+.env
+.env.local
+
 # Compiled files (TypeScript and Vue)
 **/*.vue.js
 src/**/*.js
