@@ -791,6 +791,9 @@ watch(firebaseNotes, (newNotes) => {
         isStarred: mapData?.isStarred || false,
       };
 
+      // Preserve hasAlerted state from existing note
+      const existingNote = notes.value.find((n) => n.id === firebaseNote.id);
+
       // Load map image
       if (mapData?.name) {
         loadMapImage(mapData.name);
@@ -800,6 +803,7 @@ watch(firebaseNotes, (newNotes) => {
         ...firebaseNote,
         hasSound: prefs.hasSound,
         isStarred: prefs.isStarred,
+        hasAlerted: existingNote?.hasAlerted || false,
         noteText: mapData?.name || firebaseNote.noteText,
         imagePath: mapData?.imagePath,
       };
