@@ -118,6 +118,7 @@ import packageInfo from "../package.json";
 import { Sunny, Moon } from "@element-plus/icons-vue";
 import { useFirebaseNotes } from "./composables/useFirebaseNotes";
 import { useFirebaseLogs } from "./composables/useFirebaseLogs";
+import { isUserBlocked } from "./utils/userUtils";
 // --------------------- 主題模式狀態 ---------------------
 const isDark = ref(false);
 
@@ -346,6 +347,11 @@ const saveNotes = async () => {
 };
 
 const handleAddNewNote = async (newNote: any) => {
+  if (isUserBlocked()) {
+    ElMessage.error("您的帳號已被限制，無法執行此操作");
+    return;
+  }
+
   const mapData = maps.value.find((m: MapData) => m.name === newNote.noteText);
   if (!mapData) {
     ElMessage.error("找不到對應的地圖資料");
@@ -390,6 +396,11 @@ const handleAddNewNote = async (newNote: any) => {
 };
 
 const handleDeleteNote = async (id: string) => {
+  if (isUserBlocked()) {
+    ElMessage.error("您的帳號已被限制，無法執行此操作");
+    return;
+  }
+
   const index = notes.value.findIndex((note) => note.id === id);
   if (index !== -1) {
     const deletedNote = notes.value[index];
@@ -409,6 +420,11 @@ const handleDeleteNote = async (id: string) => {
 };
 
 const handleClearAllNotes = () => {
+  if (isUserBlocked()) {
+    ElMessage.error("您的帳號已被限制，無法執行此操作");
+    return;
+  }
+
   notes.value = [];
   saveNotes();
 };
@@ -473,6 +489,11 @@ const sortNotesArray = (a: Note, b: Note): number => {
 };
 
 const handleUpdateNoteChannel = async (id: string, newChannel: number) => {
+  if (isUserBlocked()) {
+    ElMessage.error("您的帳號已被限制，無法執行此操作");
+    return;
+  }
+
   const noteToUpdate = notes.value.find((note) => note.id === id);
   if (noteToUpdate) {
     noteToUpdate.channel = newChannel;
@@ -490,6 +511,11 @@ const handleUpdateNoteStatus = async (
   newState: NoteState,
   newTime: number | null
 ) => {
+  if (isUserBlocked()) {
+    ElMessage.error("您的帳號已被限制，無法執行此操作");
+    return;
+  }
+
   const noteToUpdate = notes.value.find((note) => note.id === id);
   if (noteToUpdate) {
     noteToUpdate.state = newState;
@@ -525,6 +551,11 @@ const handleUpdateNoteStatus = async (
 };
 
 const handleUpdateNoteCd = async (id: string, respawnTime: number) => {
+  if (isUserBlocked()) {
+    ElMessage.error("您的帳號已被限制，無法執行此操作");
+    return;
+  }
+
   const note = notes.value.find((n) => n.id === id);
   if (note) {
     note.respawnTime = respawnTime;

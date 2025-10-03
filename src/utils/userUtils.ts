@@ -11,3 +11,13 @@ export function getUserId(): string {
 
   return uid;
 }
+
+// Check if current user is blocked
+export function isUserBlocked(): boolean {
+  const blockedUids = import.meta.env.VITE_BLOCKED_UIDS;
+  if (!blockedUids) return false;
+
+  const currentUid = getUserId();
+  const blockedList = blockedUids.split(',').map((uid: string) => uid.trim());
+  return blockedList.includes(currentUid);
+}
