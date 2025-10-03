@@ -68,7 +68,7 @@
           </el-col>
           <el-col :span="7" :xs="8">
             <span class="map-name-content">
-              <el-popover
+              <!-- <el-popover
                 v-if="!isXs"
                 placement="top"
                 trigger="hover"
@@ -97,8 +97,9 @@
                   />
                   <span v-else>無地圖圖片</span>
                 </template>
-              </el-popover>
-              <span v-else>
+              </el-popover> -->
+              <!-- <span v-else> -->
+              <span>
                 Lv.{{ note.mapLevel }}
                 {{ note.noteText || getMapName(note.mapLevel) }}
               </span>

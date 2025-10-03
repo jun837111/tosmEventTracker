@@ -252,25 +252,25 @@ const maps = ref(mapsData);
 const mapImageCache = ref<Record<string, string>>({});
 
 // 獨立的圖片載入函式
-const loadMapImage = async (noteText: string) => {
-  const mapData = maps.value.find((m: MapData) => m.name === noteText);
-  if (
-    mapData?.imagePath &&
-    !mapImageCache.value[mapData.name]
-  ) {
-    try {
-      const image = new Image();
-      await new Promise((resolve, reject) => {
-        image.onload = resolve;
-        image.onerror = reject;
-        image.src = mapData.imagePath as string;
-      });
-      mapImageCache.value[mapData.name] = mapData.imagePath;
-    } catch (e) {
-      console.error(`無法載入地圖圖片: ${mapData.imagePath}`, e);
-    }
-  }
-};
+// const loadMapImage = async (noteText: string) => {
+//   const mapData = maps.value.find((m: MapData) => m.name === noteText);
+//   if (
+//     mapData?.imagePath &&
+//     !mapImageCache.value[mapData.name]
+//   ) {
+//     try {
+//       const image = new Image();
+//       await new Promise((resolve, reject) => {
+//         image.onload = resolve;
+//         image.onerror = reject;
+//         image.src = mapData.imagePath as string;
+//       });
+//       mapImageCache.value[mapData.name] = mapData.imagePath;
+//     } catch (e) {
+//       console.error(`無法載入地圖圖片: ${mapData.imagePath}`, e);
+//     }
+//   }
+// };
 
 // --------------------- Firebase Setup ---------------------
 const {
@@ -357,7 +357,7 @@ const handleAddNewNote = async (newNote: any) => {
     ElMessage.error("找不到對應的地圖資料");
     return;
   }
-  await loadMapImage(mapData.name);
+  // await loadMapImage(mapData.name);
 
   const finalNote = {
     ...newNote,
@@ -804,12 +804,12 @@ onMounted(() => {
   loadNotes();
 
   // 確保只更新必要的欄位，並保留使用者設定
-  if (notes.value.length > 0) {
-    // 頁面載入時，為已存在的記錄載入圖片
-    notes.value.forEach((note) => {
-      loadMapImage(note.noteText);
-    });
-  }
+  // if (notes.value.length > 0) {
+  //   // 頁面載入時，為已存在的記錄載入圖片
+  //   notes.value.forEach((note) => {
+  //     loadMapImage(note.noteText);
+  //   });
+  // }
 
   setInterval(() => {
     notes.value.sort(sortNotesArray);
@@ -859,9 +859,9 @@ watch(firebaseNotes, (newNotes) => {
       const existingNote = notes.value.find((n) => n.id === firebaseNote.id);
 
       // Load map image
-      if (mapData?.name) {
-        loadMapImage(mapData.name);
-      }
+      // if (mapData?.name) {
+      //   loadMapImage(mapData.name);
+      // }
 
       return {
         ...firebaseNote,
