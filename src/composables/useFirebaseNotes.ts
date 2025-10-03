@@ -13,8 +13,6 @@ interface FirebaseNote {
   onTime: number | null;
   stageTime: number | null;
   respawnTime: number | null;
-  hasAlerted: boolean;
-  isWarning: boolean;
   maxStages: number;
 }
 
@@ -62,8 +60,6 @@ export function useFirebaseNotes() {
     onTime: note.onTime ?? null,
     stageTime: note.stageTime ?? null,
     respawnTime: note.respawnTime ?? null,
-    hasAlerted: note.hasAlerted ?? false,
-    isWarning: note.isWarning ?? false,
     maxStages: note.maxStages,
   });
 
