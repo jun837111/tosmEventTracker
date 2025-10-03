@@ -226,6 +226,7 @@ const emit = defineEmits([
   "toggle-input-sound",
   "update-map-star",
   "show-update-dialog",
+  "update-note-alerted",
 ]);
 // --------------------- 響應式邏輯 ---------------------
 const isXs = ref(false);
@@ -348,7 +349,7 @@ const checkAndPlaySound = () => {
         } CH.${note.channel} CD已結束`;
         ElMessage({ type: "warning", message: msg });
       }
-      note.hasAlerted = true;
+      emit("update-note-alerted", note.id);
     }
   }
 };

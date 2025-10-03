@@ -46,6 +46,7 @@
           :maps="maps"
           @update-map-star="handleUpdateMapStar"
           @show-update-dialog="handleShowUpdateDialog"
+          @update-note-alerted="handleUpdateNoteAlerted"
           :mapImageCache="mapImageCache"
         />
       </div>
@@ -517,6 +518,14 @@ const handleUpdateMapStar = (mapLevel: number) => {
   if (map) {
     map.isStarred = !map.isStarred;
     localStorage.setItem("mapData", JSON.stringify(maps.value));
+  }
+};
+
+const handleUpdateNoteAlerted = (id: string) => {
+  const note = notes.value.find((n) => n.id === id);
+  if (note) {
+    note.hasAlerted = true;
+    saveNotes();
   }
 };
 
