@@ -19,6 +19,7 @@ dist-ssr
 # Compiled files (TypeScript and Vue)
 **/*.vue.js
 src/**/*.js
+*.tsbuildinfo
 
 # Editor directories and files
 .vscode/*

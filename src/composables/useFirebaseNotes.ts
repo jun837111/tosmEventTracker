@@ -59,11 +59,11 @@ export function useFirebaseNotes() {
     noteText: note.noteText,
     channel: note.channel,
     state: note.state,
-    onTime: note.onTime,
-    stageTime: note.stageTime,
-    respawnTime: note.respawnTime,
-    hasAlerted: note.hasAlerted,
-    isWarning: note.isWarning,
+    onTime: note.onTime ?? null,
+    stageTime: note.stageTime ?? null,
+    respawnTime: note.respawnTime ?? null,
+    hasAlerted: note.hasAlerted ?? false,
+    isWarning: note.isWarning ?? false,
     maxStages: note.maxStages,
   });
 
