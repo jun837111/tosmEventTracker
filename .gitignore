@@ -8,9 +8,13 @@ pnpm-debug.log*
 lerna-debug.log*
 
 node_modules
-# dist
+dist
 dist-ssr
 *.local
+
+# Compiled files (TypeScript and Vue)
+**/*.vue.js
+src/**/*.js
 
 # Editor directories and files
 .vscode/*
