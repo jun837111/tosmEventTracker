@@ -56,6 +56,7 @@
         @update-note-status="handleUpdateNoteStatus"
         @update-note-cd="handleUpdateNoteCd"
       />
+      <LogViewer v-if="isFirebaseEnabled" />
     </el-main>
     <!-- <h3>匯入 / 匯出 記錄</h3> -->
     <!-- <div class="import-export-section">
@@ -109,12 +110,14 @@ import { v4 as uuidv4 } from "uuid";
 import NoteInput from "./components/NoteInput.vue";
 import NoteList from "./components/NoteList.vue";
 import UpdateStatusDialog from "./components/UpdateStatusDialog.vue";
+import LogViewer from "./components/LogViewer.vue";
 import type { Note, NoteState } from "./types/Note";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { maps as originalMaps, type MapData } from "./data/maps";
 import packageInfo from "../package.json";
 import { Sunny, Moon } from "@element-plus/icons-vue";
 import { useFirebaseNotes } from "./composables/useFirebaseNotes";
+import { useFirebaseLogs } from "./composables/useFirebaseLogs";
 // --------------------- 主題模式狀態 ---------------------
 const isDark = ref(false);
 
@@ -279,6 +282,8 @@ const {
   clearAllNotesInFirebase,
 } = useFirebaseNotes();
 
+const { createLog } = useFirebaseLogs();
+
 // --------------------- ------------- ---------------------
 
 const notes = ref<Note[]>([]);
@@ -372,17 +377,30 @@ const handleAddNewNote = async (newNote: any) => {
   notes.value.unshift(finalNote);
   notes.value.sort(sortNotesArray);
   saveNotes();
+
+  // Log the action
+  if (isFirebaseEnabled.value) {
+    await createLog('added', finalNote, finalNote.noteText);
+  }
+
   ElMessage({
     type: "success",
     message: `記錄新增成功! ${finalNote.noteText} 分流: ${finalNote.channel}`,
   });
 };
 
-const handleDeleteNote = (id: string) => {
+const handleDeleteNote = async (id: string) => {
   const index = notes.value.findIndex((note) => note.id === id);
   if (index !== -1) {
+    const deletedNote = notes.value[index];
     notes.value.splice(index, 1);
     saveNotes();
+
+    // Log the action
+    if (isFirebaseEnabled.value) {
+      await createLog('deleted', deletedNote, deletedNote.noteText);
+    }
+
     ElMessage({
       type: "success",
       message: "記錄已刪除",
@@ -454,15 +472,20 @@ const sortNotesArray = (a: Note, b: Note): number => {
   return 0;
 };
 
-const handleUpdateNoteChannel = (id: string, newChannel: number) => {
+const handleUpdateNoteChannel = async (id: string, newChannel: number) => {
   const noteToUpdate = notes.value.find((note) => note.id === id);
   if (noteToUpdate) {
     noteToUpdate.channel = newChannel;
+
+    // Log the action
+    if (isFirebaseEnabled.value) {
+      await createLog('updated', noteToUpdate, noteToUpdate.noteText);
+    }
   }
   saveNotes();
 };
 
-const handleUpdateNoteStatus = (
+const handleUpdateNoteStatus = async (
   id: string,
   newState: NoteState,
   newTime: number | null
@@ -492,11 +515,16 @@ const handleUpdateNoteStatus = (
         break;
     }
     notes.value.sort(sortNotesArray);
+
+    // Log the action
+    if (isFirebaseEnabled.value) {
+      await createLog('updated', noteToUpdate, noteToUpdate.noteText);
+    }
   }
   saveNotes();
 };
 
-const handleUpdateNoteCd = (id: string, respawnTime: number) => {
+const handleUpdateNoteCd = async (id: string, respawnTime: number) => {
   const note = notes.value.find((n) => n.id === id);
   if (note) {
     note.respawnTime = respawnTime;
@@ -506,6 +534,11 @@ const handleUpdateNoteCd = (id: string, respawnTime: number) => {
     note.hasAlerted = false;
     note.isWarning = false;
     saveNotes();
+
+    // Log the action
+    if (isFirebaseEnabled.value) {
+      await createLog('updated', note, note.noteText);
+    }
   }
 };
 
