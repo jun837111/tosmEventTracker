@@ -348,7 +348,7 @@ const saveNotes = async () => {
 
 const handleAddNewNote = async (newNote: any) => {
   if (isUserBlocked()) {
-    ElMessage.error("您的帳號已被限制，無法執行此操作");
+    ElMessage.error("您已被限制，無法執行此操作");
     return;
   }
 
@@ -397,7 +397,7 @@ const handleAddNewNote = async (newNote: any) => {
 
 const handleDeleteNote = async (id: string) => {
   if (isUserBlocked()) {
-    ElMessage.error("您的帳號已被限制，無法執行此操作");
+    ElMessage.error("您已被限制，無法執行此操作");
     return;
   }
 
@@ -421,7 +421,7 @@ const handleDeleteNote = async (id: string) => {
 
 const handleClearAllNotes = () => {
   if (isUserBlocked()) {
-    ElMessage.error("您的帳號已被限制，無法執行此操作");
+    ElMessage.error("您已被限制，無法執行此操作");
     return;
   }
 
@@ -490,7 +490,7 @@ const sortNotesArray = (a: Note, b: Note): number => {
 
 const handleUpdateNoteChannel = async (id: string, newChannel: number) => {
   if (isUserBlocked()) {
-    ElMessage.error("您的帳號已被限制，無法執行此操作");
+    ElMessage.error("您已被限制，無法執行此操作");
     return;
   }
 
@@ -512,7 +512,7 @@ const handleUpdateNoteStatus = async (
   newTime: number | null
 ) => {
   if (isUserBlocked()) {
-    ElMessage.error("您的帳號已被限制，無法執行此操作");
+    ElMessage.error("您已被限制，無法執行此操作");
     return;
   }
 
@@ -552,7 +552,7 @@ const handleUpdateNoteStatus = async (
 
 const handleUpdateNoteCd = async (id: string, respawnTime: number) => {
   if (isUserBlocked()) {
-    ElMessage.error("您的帳號已被限制，無法執行此操作");
+    ElMessage.error("您已被限制，無法執行此操作");
     return;
   }
 
