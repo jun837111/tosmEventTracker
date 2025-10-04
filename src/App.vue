@@ -277,6 +277,7 @@ const {
   notes: firebaseNotes,
   isFirebaseEnabled,
   initFirebase,
+  saveNoteToFirebase,
   saveNotesToFirebase,
   updateNoteInFirebase,
   deleteNoteFromFirebase,
@@ -338,14 +339,6 @@ const loadNotes = () => {
   }
 };
 
-const saveNotes = async () => {
-  if (isFirebaseEnabled.value) {
-    await saveNotesToFirebase(notes.value);
-  } else {
-    localStorage.setItem("notes", JSON.stringify(notes.value));
-  }
-};
-
 const handleAddNewNote = async (newNote: any) => {
   if (isUserBlocked()) {
     ElMessage.error("您已被限制，無法執行此操作");
@@ -382,11 +375,13 @@ const handleAddNewNote = async (newNote: any) => {
 
   notes.value.unshift(finalNote);
   notes.value.sort(sortNotesArray);
-  saveNotes();
 
-  // Log the action
+  // Save to Firebase or localStorage
   if (isFirebaseEnabled.value) {
+    await saveNoteToFirebase(finalNote);
     await createLog('added', finalNote, finalNote.noteText);
+  } else {
+    localStorage.setItem("notes", JSON.stringify(notes.value));
   }
 
   ElMessage({
@@ -405,11 +400,13 @@ const handleDeleteNote = async (id: string) => {
   if (index !== -1) {
     const deletedNote = notes.value[index];
     notes.value.splice(index, 1);
-    saveNotes();
 
-    // Log the action
+    // Delete from Firebase or localStorage
     if (isFirebaseEnabled.value) {
+      await deleteNoteFromFirebase(id);
       await createLog('deleted', deletedNote, deletedNote.noteText);
+    } else {
+      localStorage.setItem("notes", JSON.stringify(notes.value));
     }
 
     ElMessage({
@@ -419,14 +416,20 @@ const handleDeleteNote = async (id: string) => {
   }
 };
 
-const handleClearAllNotes = () => {
+const handleClearAllNotes = async () => {
   if (isUserBlocked()) {
     ElMessage.error("您已被限制，無法執行此操作");
     return;
   }
 
   notes.value = [];
-  saveNotes();
+
+  // Clear from Firebase or localStorage
+  if (isFirebaseEnabled.value) {
+    await clearAllNotesInFirebase();
+  } else {
+    localStorage.setItem("notes", JSON.stringify(notes.value));
+  }
 };
 
 const getNoteStateCategory = (state: string) => {
@@ -498,12 +501,14 @@ const handleUpdateNoteChannel = async (id: string, newChannel: number) => {
   if (noteToUpdate) {
     noteToUpdate.channel = newChannel;
 
-    // Log the action
+    // Save to Firebase or localStorage
     if (isFirebaseEnabled.value) {
+      await saveNoteToFirebase(noteToUpdate);
       await createLog('updated', noteToUpdate, noteToUpdate.noteText);
+    } else {
+      localStorage.setItem("notes", JSON.stringify(notes.value));
     }
   }
-  saveNotes();
 };
 
 const handleUpdateNoteStatus = async (
@@ -542,12 +547,14 @@ const handleUpdateNoteStatus = async (
     }
     notes.value.sort(sortNotesArray);
 
-    // Log the action
+    // Save to Firebase or localStorage
     if (isFirebaseEnabled.value) {
+      await saveNoteToFirebase(noteToUpdate);
       await createLog('updated', noteToUpdate, noteToUpdate.noteText);
+    } else {
+      localStorage.setItem("notes", JSON.stringify(notes.value));
     }
   }
-  saveNotes();
 };
 
 const handleUpdateNoteCd = async (id: string, respawnTime: number) => {
@@ -564,11 +571,13 @@ const handleUpdateNoteCd = async (id: string, respawnTime: number) => {
     note.stageTime = null;
     note.hasAlerted = false;
     note.isWarning = false;
-    saveNotes();
 
-    // Log the action
+    // Save to Firebase or localStorage
     if (isFirebaseEnabled.value) {
+      await saveNoteToFirebase(note);
       await createLog('updated', note, note.noteText);
+    } else {
+      localStorage.setItem("notes", JSON.stringify(notes.value));
     }
   }
 };
@@ -585,11 +594,17 @@ const handleUpdateMapStar = (mapLevel: number) => {
   }
 };
 
-const handleUpdateNoteAlerted = (id: string) => {
+const handleUpdateNoteAlerted = async (id: string) => {
   const note = notes.value.find((n) => n.id === id);
   if (note) {
     note.hasAlerted = true;
-    saveNotes();
+
+    // Save to Firebase or localStorage
+    if (isFirebaseEnabled.value) {
+      await saveNoteToFirebase(note);
+    } else {
+      localStorage.setItem("notes", JSON.stringify(notes.value));
+    }
   }
 };
 
@@ -875,9 +890,14 @@ watch(firebaseNotes, (newNotes) => {
   }
 }, { deep: true });
 
+// Removed: watch that calls saveNotes() - now saving individually on add/update/delete
+// Only save user preferences when notes change
 watch(notes, () => {
-  saveNotes();
-  if (isFirebaseEnabled.value) {
+  if (!isFirebaseEnabled.value) {
+    // For localStorage mode, save all notes
+    localStorage.setItem("notes", JSON.stringify(notes.value));
+  } else {
+    // For Firebase mode, only save user preferences
     saveUserPreferences();
   }
 }, { deep: true });

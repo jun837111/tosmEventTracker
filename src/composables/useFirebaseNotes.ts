@@ -63,7 +63,15 @@ export function useFirebaseNotes() {
     maxStages: note.maxStages,
   });
 
-  // Save notes to Firebase
+  // Save a single note to Firebase
+  const saveNoteToFirebase = async (note: Note) => {
+    if (!isFirebaseEnabled.value) return;
+
+    const noteRef = dbRef(db, `notes/${note.id}`);
+    await set(noteRef, toFirebaseNote(note));
+  };
+
+  // Save all notes to Firebase (use sparingly - only for bulk operations)
   const saveNotesToFirebase = async (notesData: Note[]) => {
     if (!isFirebaseEnabled.value) return;
 
@@ -104,6 +112,7 @@ export function useFirebaseNotes() {
     notes,
     isFirebaseEnabled,
     initFirebase,
+    saveNoteToFirebase,
     saveNotesToFirebase,
     updateNoteInFirebase,
     deleteNoteFromFirebase,

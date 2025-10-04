@@ -2,6 +2,7 @@
   <el-card>
     <div v-if="notes.length === 0" class="no-notes-message">沒有任何記錄。</div>
     <div v-else>
+      <div class="notes-count">總計: {{ notes.length }} 筆記錄</div>
       <div class="list-actions">
         <el-button @click="sortNotes">
           {{ sortButtonText }}
@@ -543,6 +544,12 @@ const handleClearAll = async () => {
 </script>
 
 <style scoped>
+.notes-count {
+  text-align: left;
+  padding: 5px 0;
+  font-weight: bold;
+  color: var(--el-text-color-primary);
+}
 .no-notes-message {
   text-align: center;
   padding: 20px;
