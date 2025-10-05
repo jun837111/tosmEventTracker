@@ -2,6 +2,7 @@
   <el-card>
     <div v-if="notes.length === 0" class="no-notes-message">沒有任何記錄。</div>
     <div v-else>
+      <div class="notes-count">總計: {{ notes.length }} 筆記錄</div>
       <div class="list-actions">
         <el-button @click="sortNotes">
           {{ sortButtonText }}
@@ -68,7 +69,7 @@
           </el-col>
           <el-col :span="7" :xs="8">
             <span class="map-name-content">
-              <el-popover
+              <!-- <el-popover
                 v-if="!isXs"
                 placement="top"
                 trigger="hover"
@@ -97,8 +98,9 @@
                   />
                   <span v-else>無地圖圖片</span>
                 </template>
-              </el-popover>
-              <span v-else>
+              </el-popover> -->
+              <!-- <span v-else> -->
+              <span>
                 Lv.{{ note.mapLevel }}
                 {{ note.noteText || getMapName(note.mapLevel) }}
               </span>
@@ -226,6 +228,7 @@ const emit = defineEmits([
   "toggle-input-sound",
   "update-map-star",
   "show-update-dialog",
+  "update-note-alerted",
 ]);
 // --------------------- 響應式邏輯 ---------------------
 const isXs = ref(false);
@@ -348,7 +351,7 @@ const checkAndPlaySound = () => {
         } CH.${note.channel} CD已結束`;
         ElMessage({ type: "warning", message: msg });
       }
-      note.hasAlerted = true;
+      emit("update-note-alerted", note.id);
     }
   }
 };
@@ -472,11 +475,50 @@ const sortNotes = () => {
   emit("toggle-sort");
 };
 
-const handleDelete = (id: string) => {
-  emit("delete-note", id);
+const verifyPassword = async (operation: string): Promise<boolean> => {
+  const adminPassword = import.meta.env.VITE_ADMIN_PASSWORD;
+
+  // If no password is set, allow operation
+  if (!adminPassword) {
+    return true;
+  }
+
+  try {
+    const { value: inputPassword } = await ElMessageBox.prompt(
+      `請輸入管理員密碼以${operation}`,
+      "密碼驗證",
+      {
+        confirmButtonText: "確定",
+        cancelButtonText: "取消",
+        inputType: "password",
+        inputPlaceholder: "請輸入密碼",
+      }
+    );
+
+    if (inputPassword === adminPassword) {
+      return true;
+    } else {
+      ElMessage.error("密碼錯誤");
+      return false;
+    }
+  } catch {
+    return false;
+  }
+};
+
+const handleDelete = async (id: string) => {
+  const verified = await verifyPassword("刪除此記錄");
+  if (verified) {
+    emit("delete-note", id);
+  }
 };
 
 const handleClearAll = async () => {
+  const verified = await verifyPassword("清空所有記錄");
+  if (!verified) {
+    return;
+  }
+
   try {
     await ElMessageBox.confirm(
       "確定要清空所有記錄嗎？此操作無法復原。",
@@ -502,6 +544,12 @@ const handleClearAll = async () => {
 </script>
 
 <style scoped>
+.notes-count {
+  text-align: left;
+  padding: 5px 0;
+  font-weight: bold;
+  color: var(--el-text-color-primary);
+}
 .no-notes-message {
   text-align: center;
   padding: 20px;
