@@ -70,7 +70,7 @@
           <el-col :span="7" :xs="8">
             <span class="map-name-content">
               <!-- <el-popover
-                v-if="!isXs"
+                v-if="(!isXs && featureFlags?.pic)"
                 placement="top"
                 trigger="hover"
                 :width="425"
@@ -159,7 +159,7 @@
                 >{{ getStatusText(note) }}</el-button
               >
             </span>
-            <span v-else>
+            <span v-else @click="handleExpiredClick(note)">
               {{ getStatusText(note) }}
             </span>
           </el-col>
@@ -210,7 +210,7 @@ import {
   Delete,
 } from "@element-plus/icons-vue";
 
-const featureFlags = inject<Ref<{ en: boolean }>>("feature-flags");
+const featureFlags = inject<Ref<{ pic: boolean,en: boolean }>>("feature-flags");
 
 const props = defineProps<{
   notes: Note[];
@@ -477,12 +477,10 @@ const sortNotes = () => {
 
 const verifyPassword = async (operation: string): Promise<boolean> => {
   const adminPassword = import.meta.env.VITE_ADMIN_PASSWORD;
-
   // If no password is set, allow operation
   if (!adminPassword) {
     return true;
   }
-
   try {
     const { value: inputPassword } = await ElMessageBox.prompt(
       `請輸入管理員密碼以${operation}`,
@@ -494,7 +492,6 @@ const verifyPassword = async (operation: string): Promise<boolean> => {
         inputPlaceholder: "請輸入密碼",
       }
     );
-
     if (inputPassword === adminPassword) {
       return true;
     } else {
@@ -505,7 +502,6 @@ const verifyPassword = async (operation: string): Promise<boolean> => {
     return false;
   }
 };
-
 const handleDelete = async (id: string) => {
   const verified = await verifyPassword("刪除此記錄");
   if (verified) {
