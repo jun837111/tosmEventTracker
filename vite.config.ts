@@ -4,7 +4,7 @@ import vue from '@vitejs/plugin-vue';
 
 // https://vitejs.dev/config/
 export default defineConfig(({ command }) => {
-  const base = command === 'serve' ? '/' : '/roworldEventTracker/';
+  const base = command === 'serve' ? '/' : '/tosmEventTracker/';
 
   return {
     base,
