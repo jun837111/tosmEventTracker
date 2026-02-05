@@ -94,8 +94,6 @@ const emit = defineEmits([
 
 const newCdTimeInput = ref<string>("");
 
-const { updateNoteInFirebase } = useFirebaseNotes();
-
 watch(
   () => props.currentNote,
   () => {
