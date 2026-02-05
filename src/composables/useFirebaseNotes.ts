@@ -85,7 +85,7 @@ export function useFirebaseNotes() {
   };
 
   // Update a single note
-  const updateNoteInFirebase = async (noteId: string, updates: Partial<Note>) => {
+  const updateNoteInFirebase = async (noteId: string, updates: Partial<FirebaseNote>) => {
     if (!isFirebaseEnabled.value) return;
 
     const noteRef = dbRef(db, `notes/${noteId}`);
