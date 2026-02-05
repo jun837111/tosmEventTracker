@@ -78,6 +78,7 @@
 import { ref, defineProps, defineEmits, watch, inject, Ref } from "vue";
 import { ElMessage } from "element-plus";
 import type { Note, NoteState } from "@/types/Note";
+import { useFirebaseNotes } from '/composables/useFirebaseNotes';
 
 const featureFlags = inject<Ref<{ nosec: boolean }>>("feature-flags");
 
@@ -94,6 +95,8 @@ const emit = defineEmits([
 
 const newCdTimeInput = ref<string>("");
 
+const { updateNoteInFirebase } = useFirebaseNotes();
+
 watch(
   () => props.currentNote,
   () => {
@@ -101,7 +104,7 @@ watch(
   }
 );
 
-const handleSelection = (action: string) => {
+const handleSelection = async (action: string) => {
   emit("update:modelValue", false);
   if (!props.currentNote) return;
 
@@ -122,10 +125,27 @@ const handleSelection = (action: string) => {
         : Date.now();
   }
 
-  emit("update-note-status", props.currentNote.id, newState, newTime);
+  // 直接更新 Firebase Realtime Database
+  try {
+    await updateNoteInFirebase(props.currentNote.id, {
+      state: newState,
+      // 根據您的 Note 介面，onTime/stageTime 可能需要條件性地更新
+      // 如果您的 FirebaseNote 介面中同時有 onTime 和 stageTime，
+      // 您可能需要更精確地判斷更新哪個欄位
+      // 這裡暫時只更新 onTime，假設 newTime 最終會被賦予給 onTime
+      onTime: newState === "ON" ? newTime : null, // 假設只有 ON 狀態使用 onTime
+      stageTime: newState.startsWith("STAGE_") ? newTime : null, // STAGE 狀態使用 stageTime
+    });
+    ElMessage.success("狀態已更新！");
+  } catch (error) {
+    console.error("更新狀態失敗:", error);
+    ElMessage.error("更新狀態失敗！");
+  }
+
+  // 之前的 emit("update-note-status", props.currentNote.id, newState, newTime); 已被取代
 };
 
-const handleCustomCd = () => {
+const handleCustomCd = async () => {
   const timeStr = newCdTimeInput.value.trim();
   let respawnTime: number | null = null;
 
@@ -167,7 +187,21 @@ const handleCustomCd = () => {
 
   emit("update:modelValue", false);
 
-  // 【修正】直接發出時間戳給 App.vue
-  emit("update-note-cd", props.currentNote?.id, respawnTime);
+  if (!props.currentNote) {
+    ElMessage.error("沒有選定的筆記來更新CD時間！");
+    return;
+  }
+
+  // 直接更新 Firebase Realtime Database
+  try {
+    await updateNoteInFirebase(props.currentNote.id, { respawnTime: respawnTime });
+    ElMessage.success("CD時間已更新！");
+    newCdTimeInput.value = ""; // 清空輸入框
+  } catch (error) {
+    console.error("更新CD時間失敗:", error);
+    ElMessage.error("更新CD時間失敗！");
+  }
+
+  // 之前的 emit("update-note-cd", props.currentNote?.id, respawnTime); 已被取代
 };
 </script>
